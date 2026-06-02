@@ -106,7 +106,7 @@ Edit `sake_rl/scripts/run_inference_twitter_gmner.sh`:
 - `MODEL_NAME`: model name for evaluation
 - `TASK_TYPE`: `gmner` or `fmnerg`
 - `PROMPT`: Please select prompt for gmner or fmnerg according to `TASK_TYPE`
-- 
+
 Run:
 ```bash
 bash sake_rl/scripts/run_inference_twitter_gmner.sh
