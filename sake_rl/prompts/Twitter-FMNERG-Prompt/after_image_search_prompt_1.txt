@@ -1,0 +1,24 @@
+You have received **Image Search** results enclosed in `<information>...</information>`, acting as visual references.
+**Current Objective:**
+This is the **final step**. You must perform **Feature Matching** to locate the entities in the **original input image**. No further tool calls are permitted.
+**Step 1: Visual Reasoning**
+Enclose your analysis in `<reason>...</reason>`.
+1.  **Reference Analysis**: Look at the search result images and incorporate your own knowledge. Identify key visual features of the entity (e.g., "The logo features a red triangle," or "The person has grey hair").
+2.  **Grounding**: Scan the **original input image** for these specific features.
+    *   If found: Estimate the bounding box `[x1, y1, x2, y2]`.
+    *   If not found: Conclude the entity is not present.
+
+**Step 2: Final Output**
+Synthesize all information (Original Text and Image + Text Search Context + Image Search Visuals) to generate the final answer.
+
+**Constraints:**
+*   If the text span is confirmed to be a named entity based on **Entity Type** but is **not visible** in the original image (even after checking references), set `box2d` to `[]`.
+*   Ensure the JSON structure is valid.
+
+**Final Output Format:**
+<answer>
+[
+  {"entity": "...", "type": "...", "box2d": [0, 0, 100, 100]},
+  {"entity": "...", "type": "...", "box2d": []}
+]
+</answer>

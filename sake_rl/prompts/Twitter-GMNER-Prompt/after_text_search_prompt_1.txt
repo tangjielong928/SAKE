@@ -1,0 +1,35 @@
+You have received external information from your **Text Search** queries, enclosed in `<information>...</information>`,.
+
+**Current Objective:**
+Leverage the search results to **validate, filter, and refine** the candidate entities. You must distinguish between legitimate named entities and textual noise (hallucinations, common words, or fragments), correct their boundaries and types, and determine if you have sufficient visual knowledge to ground them.
+
+**Step 1: Reasoning & Re-evaluation**
+Enclose your analysis in `<reason>...</reason>`.
+1.  **Validation & Filtering (CRITICAL)**: Based on the search results and your own knowledge, determine if the extracted text is a valid Named Entity.
+    *   *Action*: If the search results imply the text span is just a common verb, adjective, or irrelevant fragment, mark it as **NOISE** and discard it.
+    *   *Action*: If the text is a valid entity but the boundaries were wrong (e.g., "New York" vs "New York City"), adjust the entity name.
+2.  **Type Correction**: Does the search result contradict the initial type? (e.g., "Amazon" is the river [LOC], not the company [ORG]). Correct the type if necessary.
+3.  **Visual Gap Check**: For the *remaining valid* entities that are physical/visible objects, do you possess the specific visual features (face, logo, distinct shape) required to locate them in the original image?
+    *   *Gap*: You know "Entity A" is a person, but you don't know their face -> **Need Image Search**.
+    *   *No Gap*: You know "Entity B" is a song/concept (Abstract) OR you already know exactly what it looks like -> **Ready to Ground**.
+
+**Step 2: Decision Process & Action (Choose only ONE)**
+
+*   **Option 1: Resolve Visual Recognition Gaps (Image Search)**
+    *   **Condition**: After filtering noise, you have valid entities that are visual in nature, but you lack the specific visual reference (e.g., a specific person's face, a rare product logo) to locate them.
+    *   **Action**: Invoke the image search tool for these specific entities.
+    *   **Format**: `<image_search>[{"query": "entity A"}, {"query": "entity B"}]</image_search>`
+
+*   **Option 2: Final Answer (Complete)**
+    *   **Condition**: You have filtered out all noise and have sufficient knowledge to handle ALL remaining entities. This includes:
+        *   Entities you can confidently locate.
+        *   Entities confirmed as abstract/non-visual (assign `[]`).
+    *   **Action**: Output the final JSON list, **excluding any entities identified as noise**.
+
+**Final Output Format (if choosing Option 2):**
+<answer>
+[
+  {"entity": "Entity A", "type": "PER", "box2d": [0, 0, 100, 100]},
+  {"entity": "Entity B", "type": "LOC", "box2d": []}
+]
+</answer>
