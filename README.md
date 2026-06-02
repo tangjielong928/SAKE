@@ -1,4 +1,4 @@
-# SAKE: Search-Augmented Knowledgeable Entity Recognition
+# SAKE: Self-aware Knowledge Exploitation-Exploration for Grounded Multimodal Named Entity Recognition
 
 ## 👋 Introduction
 This repo is the official implementation of **SAKE**, an end-to-end agentic model for multimodal named entity recognition. SAKE enables a multimodal model to reason over a social media post, decide whether external textual or visual knowledge is needed, call search tools when necessary, and predict multimodal named entities with entity types and image regions. For details, please see our [SAKE paper](https://arxiv.org/abs/2604.20146).
