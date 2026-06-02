@@ -78,6 +78,8 @@ def parse_args():
     parser.add_argument('--search_cache_path', type=str,
                         default="xxx/data/twitter_cached_search/twitter_gmner_test",
                         help='Root directory for search cache')
+    parser.add_argument('--online_search', action='store_true',
+                        help='Use online search instead of offline search cache')
     parser.add_argument('--output_file', type=str, default='predictions.json',
                         help='Output file for predictions')
     parser.add_argument('--start_idx', type=int, default=0,
@@ -192,26 +194,26 @@ def generate_response_openai(client, model_name: str, messages: list,
 
 def process_image(image_path: str, max_pixels: int = DEFAULT_MAX_PIXELS, min_pixels: int = DEFAULT_MIN_PIXELS) -> Tuple[Image.Image, Tuple[int, int], Tuple[int, int]]:
     """
-    处理图像并进行缩放，返回处理后的图像和尺寸信息。
+    Process and resize an image, returning the processed image and size metadata.
     
     Returns:
-        processed_image: PIL Image 对象
-        original_size: (width, height) 原始尺寸
-        processed_size: (width, height) 处理后的尺寸
+        processed_image: PIL Image object
+        original_size: (width, height) original size
+        processed_size: (width, height) processed size
     """
     image = Image.open(image_path)
     
-    # 存储原始尺寸
+    # Store the original size
     original_width, original_height = image.width, image.height
     original_size = (original_width, original_height)
     
-    # 如果太大则缩放
+    # Resize if the image is too large
     if (image.width * image.height) > max_pixels:
         resize_factor = math.sqrt(max_pixels / (image.width * image.height))
         width, height = int(image.width * resize_factor), int(image.height * resize_factor)
         image = image.resize((width, height), resample=Image.Resampling.NEAREST)
     
-    # 如果太小则放大
+    # Upscale if the image is too small
     if (image.width * image.height) < min_pixels:
         resize_factor = math.sqrt(min_pixels / (image.width * image.height))
         width, height = int(image.width * resize_factor), int(image.height * resize_factor)
@@ -235,16 +237,16 @@ def pil_image_to_base64(image: Image.Image) -> str:
 
 def unscale_box2d(box: List[int], original_size: Tuple[int, int], processed_size: Tuple[int, int]) -> List[int]:
     """
-    将模型输出的box2d从处理后尺寸还原到原始图像尺寸。
-    这是scale_box2d的逆操作。
+    Restore a model-predicted box2d from processed image size to original image size.
+    This is the inverse operation of scale_box2d.
     
     Args:
-        box: [x1, y1, x2, y2] 处理后图像上的坐标
-        original_size: (width, height) 原始图像尺寸
-        processed_size: (width, height) 处理后的图像尺寸
+        box: [x1, y1, x2, y2] coordinates on the processed image
+        original_size: (width, height) original image size
+        processed_size: (width, height) processed image size
     
     Returns:
-        还原到原始图像的 box2d 坐标
+        box2d coordinates restored to the original image size
     """
     if not box or len(box) != 4:
         return box
@@ -252,7 +254,7 @@ def unscale_box2d(box: List[int], original_size: Tuple[int, int], processed_size
     orig_w, orig_h = original_size
     proc_w, proc_h = processed_size
     
-    # 计算还原比例（与scale_box2d相反）
+    # Compute restore ratios, inverse to scale_box2d
     scale_x = orig_w / proc_w
     scale_y = orig_h / proc_h
     
@@ -461,7 +463,8 @@ def run_inference(sample, image_root, search_cache_path,
                   model=None, processor=None,
                   # OpenAI mode params
                   openai_client=None, model_name=None, temperature=0.0,
-                  inference_mode='transformers'):
+                  inference_mode='transformers',
+                  online_search=False):
     """Run multi-turn inference for a single sample
     
     Args:
@@ -478,6 +481,7 @@ def run_inference(sample, image_root, search_cache_path,
         model_name: Model name for OpenAI API
         temperature: Sampling temperature for OpenAI
         inference_mode: 'transformers' or 'openai'
+        online_search: Whether to use online search instead of offline cache
     
     Returns:
         response: Model's final response
@@ -557,12 +561,21 @@ def run_inference(sample, image_root, search_cache_path,
         
         if queries:
             # Call text search
-            tool_returned_str, tool_stat = call_text_search(
-                queries=queries,
-                img_id=img_id.split('.')[0],
-                cache_path=search_cache_path,
-                original_text=user_text
-            )
+            if online_search:
+                from sake_rl.utils.tools.online_search_tools import call_online_text_search
+
+                tool_returned_str, tool_stat = call_online_text_search(
+                    queries=queries,
+                    img_id=img_id.split('.')[0],
+                    original_text=user_text
+                )
+            else:
+                tool_returned_str, tool_stat = call_text_search(
+                    queries=queries,
+                    img_id=img_id.split('.')[0],
+                    cache_path=search_cache_path,
+                    original_text=user_text
+                )
             
             # Parse and format results
             results_json = json.loads(tool_returned_str)
@@ -616,11 +629,19 @@ def run_inference(sample, image_root, search_cache_path,
         print(f"  >>> Round 3: Image search...")
         
         # Call image search
-        tool_returned_str, tool_returned_images, tool_stat = call_image_search(
-            queries=queries,
-            img_id=img_id.split('.')[0],
-            cache_path=search_cache_path
-        )
+        if online_search:
+            from sake_rl.utils.tools.online_search_tools import call_online_image_search
+
+            tool_returned_str, tool_returned_images, tool_stat = call_online_image_search(
+                queries=queries,
+                img_id=img_id.split('.')[0]
+            )
+        else:
+            tool_returned_str, tool_returned_images, tool_stat = call_image_search(
+                queries=queries,
+                img_id=img_id.split('.')[0],
+                cache_path=search_cache_path
+            )
         
         # Parse and format results
         results_json = json.loads(tool_returned_str)
@@ -668,29 +689,29 @@ def extract_answer(response: str) -> list:
 
 def restore_box2d_to_original_size(entities: list, original_size: Tuple[int, int], processed_size: Tuple[int, int]) -> list:
     """
-    将模型输出的实体中的box2d从处理后尺寸还原到原始图像尺寸。
+    Restore box2d fields in model-predicted entities from processed image size to original image size.
     
     Args:
-        entities: 模型输出的实体列表
-        original_size: (width, height) 原始图像尺寸
-        processed_size: (width, height) 处理后的图像尺寸
+        entities: list of model-predicted entities
+        original_size: (width, height) original image size
+        processed_size: (width, height) processed image size
     
     Returns:
-        还原后的实体列表
+        list of restored entities
     """
     if original_size == processed_size:
-        # 如果尺寸相同，无需还原
+        # No restoration is needed if the sizes are identical
         return entities
     
     restored_entities = []
     for entity in entities:
         restored_entity = entity.copy()
         
-        # 还原 box2d
+        # Restore box2d
         if "box2d" in entity and entity["box2d"]:
             restored_entity["box2d"] = unscale_box2d(entity["box2d"], original_size, processed_size)
         
-        # 兼容 region_box 字段
+        # Keep compatibility with the region_box field
         if "region_box" in entity and entity["region_box"]:
             restored_entity["region_box"] = unscale_box2d(entity["region_box"], original_size, processed_size)
         
@@ -717,6 +738,7 @@ def main():
     openai_client = None
     
     print(f">>> Inference mode: {args.inference_mode}")
+    print(f">>> Search mode: {'online' if args.online_search else 'cache'}")
     
     if args.inference_mode == 'transformers':
         print(f">>> Loading model from: {args.model_path}")
@@ -767,7 +789,8 @@ def main():
                 openai_client=openai_client,
                 model_name=args.model_name,
                 temperature=args.temperature,
-                inference_mode=args.inference_mode
+                inference_mode=args.inference_mode,
+                online_search=args.online_search
             )
             
             # Extract answer
@@ -867,4 +890,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -616,7 +616,6 @@ class vLLMRollout_MultiTurn_SAKE_RL(vLLMRollout):
                                     + f"Here are the image and original social media post for your task:\n{orig_image_placeholders}{org_query}\n"
                                     + self.user_prompt_after_text_search
                                 )
-                                print("调试信息: 完整输入信息: ", search_result_message)
                             else:
                                 search_result_message = (
                                     "Searched results: <information>"
@@ -650,7 +649,6 @@ class vLLMRollout_MultiTurn_SAKE_RL(vLLMRollout):
                                     + f"Here are the image and original social media post for your task:\n{orig_image_placeholders}{org_query}\n"
                                     + self.user_prompt_after_image_search
                                 )
-                                print("调试信息: 完整输入信息: ", search_result_message)
                             else:
                                 search_result_message = (
                                     "Searched results: <information>"

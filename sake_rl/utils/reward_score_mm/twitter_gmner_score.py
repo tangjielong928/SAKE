@@ -669,8 +669,8 @@ def compute_score(prediction: list, ground_truth: list, extra_info=None):
     # Format Check
     format_score, search_count = format_reward(prediction)
     
-    # Search Penalty (only apply to correct answers)
-    if search_count > 0 and score > 0.8:
+    # Search Penalty 
+    if search_count > 0 and score > 0.9:
         use_search_count_penalty = extra_info.get('use_search_count_penalty', False) if extra_info else False
         if use_search_count_penalty:
             # penalty w/ search count

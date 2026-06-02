@@ -1,8 +1,8 @@
 
-CUDA_VISIBLE_DEVICES=4 python -m vllm.entrypoints.openai.api_server \
-    --port 10095 \
+CUDA_VISIBLE_DEVICES=1 python -m vllm.entrypoints.openai.api_server \
+    --port 10091 \
     --served-model-name SAKE \
-    --model /root/work/filestorage/xxx/sake_rl/code/checkpoints/Twitter-GMNER/Qwen2.5-VL-7B_grpo_search_ckpt282_20260112/global_step_4800/actor \
+    --model /data/cl/SAKE-Dev/SAKE/checkpoints/checkpoint-2604 \
     --gpu-memory-utilization 0.90 \
     --max-model-len 32768 \
     --trust-remote-code

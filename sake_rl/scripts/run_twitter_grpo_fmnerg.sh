@@ -1,9 +1,9 @@
 # This script is for single-node running test
-export TRAIN_DATA_PATH=/root/work/filestorage/xxx/sake_rl/20260126/twitter_fmnerg/twitter_fmnerg_train_remain_4k.parquet
-export VAL_DATA_PATH=/root/work/filestorage/xxx/sake_rl/20260126/twitter_fmnerg/twitter_fmnerg_test.parquet
+export TRAIN_DATA_PATH=/root/work/filestorage/xxx/sake_rl/20260126/twitter_fmnerg/twitter_fmnerg_train.parquet
+export VAL_DATA_PATH=/root/work/filestorage/xxx/sake_rl/20260126/twitter_fmnerg/twitter_fmnerg_dev.parquet
 export SEARCH_CACHE_PATH=/root/work/filestorage/xxx/sake_rl/dataset/twitter_gmner_train
 export WANDB_PROJECT_NAME=Twitter-FMNERG
-export WANDB_EXP_NAME=Qwen2.5-VL-7B_grpo_search_train_EM_4k_ckpt554_n16_20260201
+export WANDB_EXP_NAME=Qwen2.5-VL-7B_grpo_search_train
 export RAY_memory_usage_threshold=0.95
 export HYDRA_FULL_ERROR=1
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
@@ -21,7 +21,7 @@ python3 -m sake_rl.trainer.multimodal.main_ppo \
     data.user_prompt_round_1=sake_rl/prompts/Twitter-FMNERG-Prompt/round_1_user_prompt_1.pkl \
     data.user_prompt_after_image_search=sake_rl/prompts/Twitter-FMNERG-Prompt/after_image_search_prompt_1.pkl \
     data.user_prompt_after_text_search=sake_rl/prompts/Twitter-FMNERG-Prompt/after_text_search_prompt_1.pkl \
-    actor_rollout_ref.model.path=/root/work/filestorage/xxx/sake_rl/code/output_fmnerg_cot_sft_7B_train_3k/v1-20260126-180553/checkpoint-552 \
+    actor_rollout_ref.model.path=/root/work/filestorage/xxx/sake_rl/code/output_fmnerg_cot_sft_7B/v1-20260126-180553/checkpoint-xxx \
     actor_rollout_ref.actor.optim.lr=2e-6 \
     actor_rollout_ref.actor.optim.lr_sigmoid_decay_warmup=True \
     actor_rollout_ref.actor.optim.lr_sigmoid_decay_ratio=0.95 \
@@ -44,7 +44,7 @@ python3 -m sake_rl.trainer.multimodal.main_ppo \
     actor_rollout_ref.rollout.enable_chunked_prefill=True \
     actor_rollout_ref.rollout.enforce_eager=True \
     actor_rollout_ref.rollout.free_cache_engine=True \
-    actor_rollout_ref.rollout.n=16 \
+    actor_rollout_ref.rollout.n=8 \
     actor_rollout_ref.rollout.max_gen_round=3 \
     actor_rollout_ref.rollout.response_length_total=28432 \
     actor_rollout_ref.rollout.search.topk=3 \

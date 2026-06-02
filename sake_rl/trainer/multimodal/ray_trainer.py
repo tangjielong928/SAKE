@@ -66,9 +66,6 @@ def compute_data_metrics(batch, use_critic=True, tokenizer=None):
 
     # Add 'Search_Ratio' and 'Accuracy' metrics for Twitter-GMNER
     total_count = sequence_score.size(0)
-    search_cnt_text_total, search_cnt_image_total = 0, 0
-    search_cnt_text, search_cnt_image, search_cnt_mix = 0, 0, 0
-    search_fail_text, search_fail_image = 0, 0
     responses_after_first_user_prompt = batch.batch['responses']
     assert total_count == responses_after_first_user_prompt.shape[0], "B*R != Total Num of Rollout Responses"
     
@@ -101,20 +98,6 @@ def compute_data_metrics(batch, use_critic=True, tokenizer=None):
             _resp_mask = batch.batch['multi_turn_response_mask'][idx][-_resp_length:]
             response, response_non_assistant = response[_resp_mask == 1], response[_resp_mask < 0.1]
         response_non_assistant = tokenizer.decode(response_non_assistant)
-        if '[Text Search Results] There is an error' in response_non_assistant:
-            search_fail_text += 1
-        if '[Image Search Results] There is an error' in response_non_assistant:
-            search_fail_image += 1
-        if "[Text Search Results]" in response_non_assistant:
-            search_cnt_text_total += 1
-        if "[Image Search Results]" in response_non_assistant:
-            search_cnt_image_total += 1
-        if "[Text Search Results]" in response_non_assistant and "[Image Search Results]" not in response_non_assistant:
-            search_cnt_text += 1
-        if "[Image Search Results]" in response_non_assistant and "[Text Search Results]" not in response_non_assistant:
-            search_cnt_image += 1
-        if "[Image Search Results]" in response_non_assistant and "[Text Search Results]" in response_non_assistant:
-            search_cnt_mix += 1
         
         # Extract F1 metrics if available (from extra_info)
         if 'extra_info' in batch.non_tensor_batch:
@@ -185,11 +168,6 @@ def compute_data_metrics(batch, use_critic=True, tokenizer=None):
                 # Silently skip if extra_info is not accessible
                 pass
 
-    search_ratio_text = search_cnt_text / total_count
-    search_ratio_image = search_cnt_image / total_count
-    search_ratio_mix = search_cnt_mix / total_count
-    fail_ratio_text = search_fail_text / (search_cnt_text_total + 1e-5)
-    fail_ratio_image = search_fail_image / (search_cnt_image_total + 1e-5)
     fp = 0.1
     if 'extra_info' in batch.non_tensor_batch and 'format_penalty' in batch.non_tensor_batch['extra_info'][0]:
         fp = batch.non_tensor_batch['extra_info'][0]['format_penalty']
@@ -225,14 +203,6 @@ def compute_data_metrics(batch, use_critic=True, tokenizer=None):
         return_var = torch.var(valid_returns)
 
     metrics = {
-        # multimodla search related
-        # 'critic/correct_threshold': correct_threshold,
-        # 'critic/search_fail_ratio_text': fail_ratio_text,
-        # 'critic/search_fail_ratio_image': fail_ratio_image,
-        'critic/search_ratio_text': search_ratio_text,
-        'critic/search_ratio_image': search_ratio_image,
-        'critic/search_ratio_mix': search_ratio_mix,
-        # 'critic/answer_acc': answer_acc,
         # Twitter-GMNER F1 metrics
         **(
             {
@@ -948,9 +918,6 @@ class RayPPOTrainer:
                 metric_dict[f'val/{data_source}/gmner_fp_sum'] = np.sum(val_gmner_fps)
                 metric_dict[f'val/{data_source}/gmner_fn_sum'] = np.sum(val_gmner_fns)
             
-            search_cnt_text_total, search_cnt_image_total = 0, 0
-            search_cnt_text, search_cnt_image, search_cnt_mix = 0, 0, 0
-            search_fail_text, search_fail_image = 0, 0
             responses_after_first_user_prompt = test_batch.batch['responses']
             for idx, response in enumerate(responses_after_first_user_prompt):
                 _resp_length = response.size(0)
@@ -958,40 +925,7 @@ class RayPPOTrainer:
                     _resp_mask = test_batch.batch['multi_turn_response_mask'][idx][-_resp_length:]
                     response, response_non_assistant = response[_resp_mask == 1], response[_resp_mask < 0.1]
                 response_non_assistant = self.tokenizer.decode(response_non_assistant)
-                if (
-                    "[Text Search Results]" in response_non_assistant
-                    and "[Image Search Results]" not in response_non_assistant
-                ):
-                    search_cnt_text += 1
-                if (
-                    "[Image Search Results]" in response_non_assistant
-                    and "[Text Search Results]" not in response_non_assistant
-                ):
-                    search_cnt_image += 1
-                if (
-                    "[Image Search Results]" in response_non_assistant
-                    and "[Text Search Results]" in response_non_assistant
-                ):
-                    search_cnt_mix += 1
-                if "[Text Search Results]" in response_non_assistant:
-                    search_cnt_text_total += 1
-                if "[Image Search Results]" in response_non_assistant:
-                    search_cnt_image_total += 1
-                if '[Text Search Results] There is an error' in response_non_assistant:
-                    search_fail_text += 1
-                if '[Image Search Results] There is an error' in response_non_assistant:
-                    search_fail_image += 1
-            search_ratio_text = search_cnt_text / len(rewards)
-            search_ratio_image = search_cnt_image / len(rewards)
-            search_ratio_mix = search_cnt_mix / len(rewards)
-            fail_ratio_text = search_fail_text / (search_cnt_text_total + 1e-5)
-            fail_ratio_image = search_fail_image / (search_cnt_image_total + 1e-5)
             metric_dict[f'val/{data_source}/correct_threshold'] = correct_threshold
-            metric_dict[f'val/{data_source}/search_ratio_text'] = search_ratio_text
-            metric_dict[f'val/{data_source}/search_ratio_image'] = search_ratio_image
-            metric_dict[f'val/{data_source}/search_ratio_mix'] = search_ratio_mix
-            metric_dict[f'val/{data_source}/search_fail_ratio_text'] = fail_ratio_text
-            metric_dict[f'val/{data_source}/search_fail_ratio_image'] = fail_ratio_image
             metric_dict[f'val/{data_source}/rewards_len'] = len(rewards)
             metric_dict[f'val/{data_source}/responses_after_first_user_prompt_len'] = len(
                 responses_after_first_user_prompt
