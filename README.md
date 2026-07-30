@@ -54,7 +54,18 @@ Uploading all data, model checkpoints, and search caches will take some time. We
 SAKE follows a two-stage training pipeline: cold-start SFT followed by agentic RL.
 
 ### Step 1: Cold-Start SFT
-Edit `cold_start/train/run.sh` with your base model, SeCoT training data path, and output path:
+First convert the raw SeCoT data into the jsonl format required by swift:
+```bash
+python cold_start/train/convert_data.py \
+  --messages_path /path/to/cold_start/fmnerg \
+  --output_path ./cold_start/train/sake_secot.jsonl
+```
+
+- `--messages_path`: directory of raw SeCoT SFT data (one json sample per file)
+- `--output_path`: output jsonl file used as the swift sft dataset
+- `--image_root` (optional): rewrite every image path to this directory
+
+Then edit `cold_start/train/run.sh` with your base model, the converted jsonl path, and output path:
 ```bash
 bash cold_start/train/run.sh
 ```

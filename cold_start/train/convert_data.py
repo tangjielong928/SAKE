@@ -1,6 +1,20 @@
+import argparse
 import os
 import json
-import re
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Convert raw SeCoT SFT samples into the jsonl format required by swift sft"
+    )
+    parser.add_argument('--messages_path', type=str, required=True,
+                        help='Directory of raw SFT data (one json sample per file)')
+    parser.add_argument('--output_path', type=str, default='./sake_secot.jsonl',
+                        help='Output jsonl file used as the swift sft dataset')
+    parser.add_argument('--image_root', type=str, default=None,
+                        help='If set, rewrite every image path to this directory and '
+                             'collect them into a top-level "images" field')
+    return parser.parse_args()
 
 
 def change_path(path_head, sample):
@@ -8,60 +22,39 @@ def change_path(path_head, sample):
         correct the image path and move it
     '''
     new_path = []
-    try:
-        for item in sample["messages"]:
-            if "images" in item.keys():
-                for p in item["images"]:
-                    split_idx = p.rfind("/")
-                    new_path.append(path_head + p[split_idx:])
-                del item["images"]
-    except:
-        import pdb
-        pdb.set_trace()
+    for item in sample["messages"]:
+        if "images" in item.keys():
+            for p in item["images"]:
+                split_idx = p.rfind("/")
+                new_path.append(path_head + p[split_idx:])
+            del item["images"]
     sample.update({"images": new_path})
     return sample
 
 
-
-def test():
-    sam1_path = "./cot_train_3k/16_05_01_6_cot.json"
-    sam2_path = "./cot_train_3k/16_05_01_29_cot.json"
-    path_head = "./cot_data/cot_train_3k_image"
-
-    with open(sam1_path, "r") as fr:
-        sam1 = json.load(fr)
-    with open(sam2_path, "r") as fr:
-        sam2 = json.load(fr)
-    
-    data = []
-    data.append(change_path(path_head, sam1))
-    data.append(change_path(path_head, sam2))
-
-    with open("../train/test_sample.jsonl", "w") as fw:
-        for d in data:
-            fw.write(json.dumps(d))
-            fw.write("\n")
-
-
 def main():
-    messages_path = "xxx/cold_start/cot_trajectories_test_1500"
-    output_path = "./cot_test_3k.jsonl"
-    path_head = "./cot_data/cot_train_3k_image"
+    args = parse_args()
+
     data = []
-    path_lis = os.listdir(messages_path)
+    path_lis = sorted(os.listdir(args.messages_path))
     for path in path_lis:
-        if "progress" in path or os.path.isdir(os.path.join(messages_path, path)):
+        if "progress" in path or os.path.isdir(os.path.join(args.messages_path, path)):
             continue
-        with open(os.path.join(messages_path, path), "r") as fr:
+        with open(os.path.join(args.messages_path, path), "r") as fr:
             d = json.load(fr)
-            # data.append(change_path(path_head, d))
+            if args.image_root is not None:
+                d = change_path(args.image_root, d)
             data.append(d)
-    
-    with open(output_path, "w") as fw:
+
+    output_dir = os.path.dirname(os.path.abspath(args.output_path))
+    os.makedirs(output_dir, exist_ok=True)
+
+    with open(args.output_path, "w") as fw:
         for d in data:
-            fw.write(json.dumps(d))
+            fw.write(json.dumps(d, ensure_ascii=False))
             fw.write("\n")
 
+    print(f"Converted {len(data)} samples -> {args.output_path}")
 
 
 if __name__ == "__main__":
