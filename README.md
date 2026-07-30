@@ -43,12 +43,16 @@ MODEL_NAME=your_model_name
 
 ## 📂 Download the Dataset and Models
 
-Uploading all data, model checkpoints, and search caches will take some time. We are actively working on the release.
+All data (SeCoT data, RL data, and search caches) is released in a single dataset repo, and the RL checkpoints for the two benchmarks are released separately:
 
-- 📦SeCoT data: TODO
-- 📦RL Data: TODO
-- 📦Search cache: TODO
-- 📦Model checkpoints: TODO
+- 📦 Data (SeCoT / RL / search cache): [SAKE-Twitter](https://huggingface.co/datasets/SYSU-AI/SAKE-Twitter)
+- 🤖 Model: [SAKE](https://huggingface.co/SYSU-AI/SAKE-7B_gmner)
+
+```bash
+huggingface-cli download SYSU-AI/SAKE-Twitter --repo-type dataset --local-dir ./data/SAKE-Twitter
+huggingface-cli download SYSU-AI/SAKE-7B_gmner --local-dir ./checkpoints/SAKE-7B_gmner
+huggingface-cli download SYSU-AI/SAKE-7B_fmnerg --local-dir ./checkpoints/SAKE-7B_fmnerg
+```
 
 ## ▶️ Training
 SAKE follows a two-stage training pipeline: cold-start SFT followed by agentic RL.
